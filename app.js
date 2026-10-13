@@ -2,7 +2,7 @@ const data=window.Q4_DATA;
 const groups={'快银':{color:'#54b3c5',bg:'#def4f7'},'青龙':{color:'#49b899',bg:'#def4eb'},'星辰':{color:'#a4b957',bg:'#eef4da'},'玄武':{color:'#d590ad',bg:'#f7e5ec'},'游戏发行':{color:'#7199d5',bg:'#e3ecfa'},'快银-游戏自研':{color:'#c79a42',bg:'#fff0cd'},'涛哥需求':{color:'#aa93c9',bg:'#eee7f8'},'TOPONE':{color:'#2798d7',bg:'#e2f3fc'},'设计中心':{color:'#839866',bg:'#eef2e4'}};
 const state={view:location.hash==='#people'?'people':location.hash==='#new'?'new':'pool',peopleMode:'months',group:'',month:'',person:'',status:'',query:''};
 const storageKey='design-q4-2026-assignments-v2';let assignments={};let storageOK=true;
-try{assignments=JSON.parse(localStorage.getItem(storageKey)||'{}');if(!assignments||typeof assignments!=='object')assignments={};for(const k in assignments){if(assignments[k]==='一帆')assignments[k]='周澳';if(assignments[k]==='绮铧')assignments[k]='琦铧';if(assignments[k]!==''&&!data.designers.includes(assignments[k]))delete assignments[k];}}catch{assignments={};storageOK=false;}
+try{assignments=JSON.parse(localStorage.getItem(storageKey)||'{}');if(!assignments||typeof assignments!=='object')assignments={};for(const k in assignments){if(assignments[k]==='一帆')assignments[k]='周澳';if(assignments[k]==='琦铧')assignments[k]='绮铧';if(assignments[k]!==''&&!data.designers.includes(assignments[k]))delete assignments[k];}}catch{assignments={};storageOK=false;}
 for(const key of ['N8-A','N8-B']){if(!Object.hasOwn(assignments,key)&&Object.hasOwn(assignments,'N8'))assignments[key]=assignments.N8;}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
