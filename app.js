@@ -38,7 +38,7 @@ function foldPersonTasks(items,p){
  for(const r of items){const gp=personalGroupFor(r,p);const b=bucketFor(r);const key=gp?gp.key:b?.id==='N6'&&owner(r).includes(p)?'XUANWU-STAGES':r.id;if(!bins.has(key))bins.set(key,{rows:[],gp});bins.get(key).rows.push(r);}
  return Array.from(bins,([key,bin])=>{
   const rs=bin.rows,gp=bin.gp;const isGP=Boolean(gp);const isStages=key==='XUANWU-STAGES';if(!isGP&&(!isStages||rs.length===1))return rs[0];
-  const r={...rs[0],id:'group-'+key+'-'+p,product:isGP?gp.title:'新产品待定',demand:isGP?(gp.demand||'多产品协同支持'):`${rs.length} 个版本阶段`,owner:isGP?'':owner(rs[0]),support:isGP?`${p}：${gp.title}`:rs[0].support,months:[...new Set(rs.flatMap(x=>x.months))],time:isGP?'10月':'12月 · 末阶段次年1月提审',aggregate:rs,aggregateType:isGP?'gp':'stages',aggregatePerson:isGP?p:'',aggregateRoleTitle:isGP?gp.title:'',aggregateItemLabel:isGP?(gp.itemLabel||'项产品协助'):'个版本阶段'};
+  const r={...rs[0],id:'group-'+key+'-'+p,product:isGP?gp.title:'新产品待定',demand:isGP?(gp.demand||'多产品协同支持'):`${rs.length} 个版本阶段`,owner:isGP?(gp.primary?p:''):owner(rs[0]),support:isGP?`${p}：${gp.title}`:rs[0].support,months:[...new Set(rs.flatMap(x=>x.months))],time:isGP?'10月':'12月 · 末阶段次年1月提审',aggregate:rs,aggregateType:isGP?'gp':'stages',aggregatePerson:isGP?p:'',aggregateRoleTitle:isGP?gp.title:'',aggregateItemLabel:isGP?(gp.itemLabel||'项产品协助'):'个版本阶段'};
   groupedTasks.set(r.id,r);return r;
  });
 }
