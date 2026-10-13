@@ -23,7 +23,7 @@ function table(rows){return `<div class="table-wrap"><table><thead><tr><th>项�
 function participants(r){return data.designers.filter(p=>owner(r).includes(p)||r.support.includes(p));}
 function contribution(r,p){if(owner(r).includes(p))return r.primaryRoles?.[p]||'主跟进';const part=r.support.split(/[；;]/).find(s=>s.trim().startsWith(p+'：'));return part?part.trim().slice(p.length+1):'协作支持';}
 function personDemand(r,p){return r.personDemands?.[p]||r.demand;}
-function partners(r,p){if(r.aggregate)return `<span class="partner-line">${r.aggregate.length} ${r.aggregateType==='gp'?'项产品协助':'个版本阶段'} · 点击展开详情</span>`;const names=participants(r).filter(n=>n!==p);return names.length?`<span class="partner-line">与 ${names.map(n=>esc(n)+'（'+esc(contribution(r,n))+'）').join('、')} 一起</span>`:'';}
+function partners(r,p){if(r.aggregate)return `<span class="partner-line">${r.aggregate.length} ${esc(r.aggregateItemLabel||(r.aggregateType==='gp'?'项产品协助':'个版本阶段'))} · 点击展开详情</span>`;const names=participants(r).filter(n=>n!==p);return names.length?`<span class="partner-line">与 ${names.map(n=>esc(n)+'（'+esc(contribution(r,n))+'）').join('、')} 一起</span>`:'';}
 function collaborationBoard(rows){
  const shared=rows.filter(r=>participants(r).length>1);
  if(!shared.length)return '<div class="empty"><strong>当前筛选下暂无多人协作事项</strong><p>尝试切换月份、人员或项目组。</p></div>';
@@ -32,18 +32,19 @@ function collaborationBoard(rows){
  return `<div class="collab-scroll"><div class="collab-board" style="--person-count:${people.length};min-width:${220+people.length*125}px"><div class="collab-header"><strong>项目 / 阶段</strong>${people.map(p=>`<div class="collab-person ${state.person===p?'selected':''}"><span class="avatar">${esc(p.slice(-1))}</span><strong>${esc(p)}</strong></div>`).join('')}</div>${monthKeys.map(m=>{const rs=shared.filter(r=>m==='unknown'?!r.months.length:r.months.includes(m)).sort((a,b)=>Object.keys(groups).indexOf(a.group)-Object.keys(groups).indexOf(b.group));if(!rs.length)return'';return `<section><h3 class="collab-month">${m==='unknown'?'时间待定':m+'月'}<span>${rs.length} 条多人协作事项</span></h3>${rs.map(r=>{const ps=participants(r),indices=ps.map(p=>people.indexOf(p)),first=Math.min(...indices),last=Math.max(...indices);return `<div class="collab-row"><button class="collab-project" data-task="${r.id}">${groupLabel(r.group)}<strong>${esc(r.product)}</strong><span>${esc(r.demand)}</span><small>${esc(r.time)} · ${r.id}</small></button><div class="collab-lanes" style="--task-bg:${groups[r.group].bg};--task-color:${groups[r.group].color}"><span class="collab-line" style="left:calc((100% / ${people.length}) * ${first+.5});width:calc((100% / ${people.length}) * ${last-first})" aria-hidden="true"></span>${people.map(p=>{const involved=ps.includes(p),primary=owner(r).includes(p);return `<div class="collab-lane ${state.person===p?'selected':''}">${involved?`<button class="collab-node ${primary?'':'is-support'}" data-task="${r.id}" aria-label="${esc(p+' · '+r.product+' · '+r.demand+' · '+(primary?'主跟进':'协作'))}"><strong>${esc(p)}</strong><small>${esc(contribution(r,p))}</small></button>`:''}</div>`;}).join('')}</div></div>`;}).join('')}</section>`;}).join('')}</div></div>`;
 }
 let groupedTasks=new Map();
+function personalGroupFor(r,p){const groups=r.personalGroups||(r.personalGroup?[r.personalGroup]:[]);return groups.find(g=>g.person===p);}
 function foldPersonTasks(items,p){
  const bins=new Map();
- for(const r of items){const gp=r.personalGroup?.person===p;const b=bucketFor(r);const key=gp?'GP-JIN':b?.id==='N6'&&owner(r).includes(p)?'XUANWU-STAGES':r.id;if(!bins.has(key))bins.set(key,[]);bins.get(key).push(r);}
- return Array.from(bins,([key,rs])=>{
-  const isGP=key==='GP-JIN';const isStages=key==='XUANWU-STAGES';if(!isGP&&(!isStages||rs.length===1))return rs[0];
-  const r={...rs[0],id:'group-'+key+'-'+p,product:isGP?'GP协助':'新产品待定',demand:isGP?'多产品协同支持':`${rs.length} 个版本阶段`,owner:isGP?'':owner(rs[0]),support:isGP?'锦淳：GP协助':rs[0].support,months:[...new Set(rs.flatMap(x=>x.months))],time:isGP?'10月':'12月 · 末阶段次年1月提审',aggregate:rs,aggregateType:isGP?'gp':'stages'};
+ for(const r of items){const gp=personalGroupFor(r,p);const b=bucketFor(r);const key=gp?gp.key:b?.id==='N6'&&owner(r).includes(p)?'XUANWU-STAGES':r.id;if(!bins.has(key))bins.set(key,{rows:[],gp});bins.get(key).rows.push(r);}
+ return Array.from(bins,([key,bin])=>{
+  const rs=bin.rows,gp=bin.gp;const isGP=Boolean(gp);const isStages=key==='XUANWU-STAGES';if(!isGP&&(!isStages||rs.length===1))return rs[0];
+  const r={...rs[0],id:'group-'+key+'-'+p,product:isGP?gp.title:'新产品待定',demand:isGP?(gp.demand||'多产品协同支持'):`${rs.length} 个版本阶段`,owner:isGP?'':owner(rs[0]),support:isGP?`${p}：${gp.title}`:rs[0].support,months:[...new Set(rs.flatMap(x=>x.months))],time:isGP?'10月':'12月 · 末阶段次年1月提审',aggregate:rs,aggregateType:isGP?'gp':'stages',aggregatePerson:isGP?p:'',aggregateRoleTitle:isGP?gp.title:'',aggregateItemLabel:isGP?(gp.itemLabel||'项产品协助'):'个版本阶段'};
   groupedTasks.set(r.id,r);return r;
  });
 }
 function showGroupedDetail(r){
- $('#detail-id').textContent='Q4 / '+(r.aggregateType==='gp'?'GP协助':'版本阶段');
- $('#detail-body').innerHTML=groupLabel(r.group)+`<h2>${esc(r.product)}</h2><p class="detail-demand">${r.aggregateType==='gp'?'锦淳 · GP协助':esc(owner(r))+' · 主跟进'}</p><p class="detail-note">${r.aggregateType==='gp'?'人员分工合并展示，以下产品需求与原有负责人继续保留。':'按同一待定产品需求组合并展示，以下为版本阶段，不作为多个独立项目计数；最终产品数量仍待确认。'}</p><div class="grouped-detail-list">${r.aggregate.map(x=>`<button data-task="${x.id}"><strong>${esc(r.aggregateType==='gp'?x.product:x.demand)}</strong><span>${esc(r.aggregateType==='gp'?x.demand:x.product)}</span><small>${esc(x.time)}${x.id==='X14'?' · 12月启动，跨季度提审':''}</small><small>主跟进：${esc(owner(x)||'待核对 / 待分配')}${x.support?' · '+esc(x.support):''}</small><em>查看原始需求 ↗</em></button>`).join('')}</div>`;
+ $('#detail-id').textContent='Q4 / '+(r.aggregateType==='gp'?r.aggregateRoleTitle:'版本阶段');
+ $('#detail-body').innerHTML=groupLabel(r.group)+`<h2>${esc(r.product)}</h2><p class="detail-demand">${r.aggregateType==='gp'?esc(r.aggregatePerson+' · '+r.aggregateRoleTitle):esc(owner(r))+' · 主跟进'}</p><p class="detail-note">${r.aggregateType==='gp'?'人员分工合并展示，以下产品需求与原有负责人继续保留。':'按同一待定产品需求组合并展示，以下为版本阶段，不作为多个独立项目计数；最终产品数量仍待确认。'}</p><div class="grouped-detail-list">${r.aggregate.map(x=>`<button data-task="${x.id}"><strong>${esc(r.aggregateType==='gp'?x.product:x.demand)}</strong><span>${esc(r.aggregateType==='gp'?x.demand:x.product)}</span><small>${esc(x.time)}${x.id==='X14'?' · 12月启动，跨季度提审':''}</small><small>主跟进：${esc(owner(x)||'待核对 / 待分配')}${x.support?' · '+esc(x.support):''}</small><em>查看原始需求 ↗</em></button>`).join('')}</div>`;
  if(!$('#detail').open)$('#detail').showModal();
 }
 function personCards(rows){
